@@ -1,0 +1,109 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String
+  phone     String?
+  role      Role     @default(STUDENT)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  student        Student?
+  uploadedVideos Video[]  @relation("VideoUploader")
+}
+
+model Student {
+  id          Int      @id @default(autoincrement())
+  userId      Int      @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  className   String?
+  parentPhone String?
+  enrolledAt  DateTime @default(now())
+  active      Boolean  @default(true)
+
+  attendances Attendance[]
+  payments    Payment[]
+
+  @@index([className])
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+  EXCUSED
+}
+
+model Attendance {
+  id        Int              @id @default(autoincrement())
+  studentId Int
+  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  date      DateTime         @db.Date
+  status    AttendanceStatus @default(PRESENT)
+  checkInAt DateTime?
+  note      String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([studentId, date])
+  @@index([date])
+}
+
+enum PaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+model Payment {
+  id         Int           @id @default(autoincrement())
+  studentId  Int
+  student    Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  year       Int
+  month      Int
+  amount     Int
+  paidAmount Int           @default(0)
+  status     PaymentStatus @default(UNPAID)
+  dueDate    DateTime      @db.Date
+  paidAt     DateTime?
+  memo       String?
+  createdAt  DateTime      @default(now())
+  updatedAt  DateTime      @updatedAt
+
+  @@unique([studentId, year, month])
+  @@index([status])
+}
+
+model Video {
+  id          Int       @id @default(autoincrement())
+  title       String
+  description String?
+  subject     String?
+  problemDate DateTime? @db.Date
+  filePath    String
+  mimeType    String?
+  sizeBytes   Int?
+  uploaderId  Int
+  uploader    User      @relation("VideoUploader", fields: [uploaderId], references: [id])
+  published   Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([problemDate])
+  @@index([createdAt])
+}
