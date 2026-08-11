@@ -10,7 +10,7 @@ studentsRouter.use(requireAuth, requireRole('ADMIN', 'TEACHER'));
 
 const listSelect = {
   id: true,
-  studentNo: true,
+  seatNo: true,
   name: true,
   gender: true,
   course: true,
@@ -42,12 +42,12 @@ studentsRouter.get('/', async (req, res) => {
       OR: query.q
         ? [
             { name: { contains: query.q, mode: 'insensitive' } },
-            { studentNo: { contains: query.q, mode: 'insensitive' } },
+            { seatNo: { contains: query.q, mode: 'insensitive' } },
           ]
         : undefined,
     },
     select: listSelect,
-    orderBy: [{ gender: 'asc' }, { studentNo: 'asc' }, { id: 'asc' }],
+    orderBy: [{ gender: 'asc' }, { seatNo: 'asc' }, { id: 'asc' }],
   });
 
   res.json(students);
@@ -79,7 +79,7 @@ studentsRouter.get('/:id', async (req, res) => {
 });
 
 const upsertSchema = z.object({
-  studentNo: z.string().min(1).optional(),
+  seatNo: z.string().min(1).optional(),
   name: z.string().min(1),
   gender: z.enum(['MALE', 'FEMALE']).optional(),
   course: z.string().optional(),
@@ -94,10 +94,10 @@ const upsertSchema = z.object({
 studentsRouter.post('/', async (req, res) => {
   const body = upsertSchema.parse(req.body);
 
-  if (body.studentNo) {
-    const dup = await prisma.student.findUnique({ where: { studentNo: body.studentNo } });
+  if (body.seatNo) {
+    const dup = await prisma.student.findUnique({ where: { seatNo: body.seatNo } });
     if (dup) {
-      throw new HttpError(409, `이미 사용 중인 학생번호입니다: ${body.studentNo}`);
+      throw new HttpError(409, `이미 사용 중인 좌석번호입니다: ${body.seatNo}`);
     }
   }
 

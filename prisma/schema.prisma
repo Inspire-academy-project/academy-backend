@@ -34,7 +34,7 @@ enum Gender {
 
 model Student {
   id             Int      @id @default(autoincrement())
-  studentNo      String?  @unique
+  seatNo         String?  @unique
   name           String
   gender         Gender?
   course         String?
@@ -54,6 +54,8 @@ model Student {
 
   attendances Attendance[]
   payments    Payment[]
+  mealOrders  MealOrder[]
+  mealRecords MealRecord[]
 
   @@index([active, gender])
   @@index([className])
@@ -128,6 +130,64 @@ model Payment {
 
   @@unique([studentId, periodId])
   @@index([status])
+}
+
+enum MealType {
+  LUNCH
+  DINNER
+}
+
+/// 급식은 정액이 아니라 선불 식권제다. 월 단위로 신청 개수를 받아 결제하고,
+/// 남은 개수는 다음 달로 이월(선결제)된다.
+model MealOrder {
+  id           Int           @id @default(autoincrement())
+  studentId    Int
+  student      Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  year         Int
+  month        Int
+  mealType     MealType
+  orderedCount Int
+  carriedOver  Int           @default(0)
+  unitPrice    Int
+  chargeCount  Int
+  amount       Int
+  method       String?
+  status       PaymentStatus @default(UNPAID)
+  paidAt       DateTime?
+  memo         String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  @@unique([studentId, year, month, mealType])
+  @@index([year, month, mealType])
+  @@index([status])
+}
+
+/// 급식수령표에 손으로 O 표시하던 일별 수령 기록.
+model MealRecord {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  date      DateTime @db.Date
+  mealType  MealType
+  received  Boolean  @default(true)
+  note      String?
+  createdAt DateTime @default(now())
+
+  @@unique([studentId, date, mealType])
+  @@index([date, mealType])
+}
+
+/// 공휴일 등 급식을 운영하지 않는 날. 수령표에서 해당 칸을 비운다.
+model MealServiceDay {
+  id        Int      @id @default(autoincrement())
+  date      DateTime @db.Date
+  mealType  MealType
+  operating Boolean  @default(true)
+  note      String?
+
+  @@unique([date, mealType])
+  @@index([date])
 }
 
 model Video {

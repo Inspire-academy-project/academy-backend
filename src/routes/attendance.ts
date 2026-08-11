@@ -43,19 +43,19 @@ attendanceRouter.get('/', requireRole('ADMIN', 'TEACHER'), async (req, res) => {
     where: { active: true, className: query.className },
     select: {
       id: true,
-      studentNo: true,
+      seatNo: true,
       name: true,
       gender: true,
       className: true,
       attendances: { where: { date }, take: 1 },
     },
-    orderBy: [{ gender: 'asc' }, { studentNo: 'asc' }, { id: 'asc' }],
+    orderBy: [{ gender: 'asc' }, { seatNo: 'asc' }, { id: 'asc' }],
   });
 
   res.json(
     students.map((student) => ({
       studentId: student.id,
-      studentNo: student.studentNo,
+      seatNo: student.seatNo,
       name: student.name,
       gender: student.gender,
       className: student.className,
