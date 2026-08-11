@@ -54,8 +54,9 @@ model Student {
 
   attendances Attendance[]
   payments    Payment[]
-  mealOrders  MealOrder[]
-  mealRecords MealRecord[]
+  mealReservations MealReservation[]
+  mealRecords      MealRecord[]
+  mealSettlements  MealSettlement[]
 
   @@index([active, gender])
   @@index([className])
@@ -85,7 +86,6 @@ model Attendance {
 
 enum FeeType {
   TUITION
-  MEAL
   OTHER
 }
 
@@ -137,26 +137,45 @@ enum MealType {
   DINNER
 }
 
-/// 급식은 정액이 아니라 선불 식권제다. 월 단위로 신청 개수를 받아 결제하고,
-/// 남은 개수는 다음 달로 이월(선결제)된다.
-model MealOrder {
-  id           Int           @id @default(autoincrement())
-  studentId    Int
-  student      Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  year         Int
-  month        Int
-  mealType     MealType
-  orderedCount Int
-  carriedOver  Int           @default(0)
-  unitPrice    Int
-  chargeCount  Int
-  amount       Int
-  method       String?
-  status       PaymentStatus @default(UNPAID)
-  paidAt       DateTime?
-  memo         String?
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+enum ReservationStatus {
+  RESERVED
+  CANCELLED
+}
+
+/// 급식은 후불이다. 날짜별로 신청하고 전날까지 취소할 수 있으며,
+/// 월말에 실제 수령한 횟수만큼 정산해 청구한다.
+model MealReservation {
+  id          Int               @id @default(autoincrement())
+  studentId   Int
+  student     Student           @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  date        DateTime          @db.Date
+  mealType    MealType
+  status      ReservationStatus @default(RESERVED)
+  cancelledAt DateTime?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@unique([studentId, date, mealType])
+  @@index([date, mealType, status])
+}
+
+/// 월별 후불 정산. 실제 수령 횟수 x 단가로 청구액이 정해진다.
+model MealSettlement {
+  id          Int           @id @default(autoincrement())
+  studentId   Int
+  student     Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  year        Int
+  month       Int
+  mealType    MealType
+  servedCount Int
+  unitPrice   Int
+  amount      Int
+  method      String?
+  status      PaymentStatus @default(UNPAID)
+  paidAt      DateTime?
+  memo        String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
 
   @@unique([studentId, year, month, mealType])
   @@index([year, month, mealType])
