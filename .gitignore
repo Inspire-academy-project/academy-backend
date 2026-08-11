@@ -3,3 +3,13 @@ dist/
 uploads/
 .env
 src/generated/
+
+# 개인정보 — 원생 명부·결제 엑셀 등은 절대 커밋하지 않는다
+*.xlsx
+*.xls
+*.xlsm
+*.csv
+*.tsv
+*.hwp
+*.hwpx
+/data/
