@@ -18,10 +18,11 @@ async function main() {
     create: { email: 'teacher@academy.kr', password, name: '김강사', role: 'TEACHER' },
   });
 
+  // 실명과 절대 겹치지 않도록 고전 소설 인물 이름만 쓴다.
   const samples = [
-    { seatNo: 'M01', name: '이하늘', gender: 'MALE', course: '재수', enrolledAt: '2026-03-16' },
-    { seatNo: 'M02', name: '박서준', gender: 'MALE', course: '재수', enrolledAt: '2026-06-18' },
-    { seatNo: 'F01', name: '최민지', gender: 'FEMALE', course: '재수', enrolledAt: '2026-03-16' },
+    { seatNo: 'M01', name: '홍길동', gender: 'MALE', course: '재수', enrolledAt: '2026-03-16' },
+    { seatNo: 'M02', name: '임꺽정', gender: 'MALE', course: '재수', enrolledAt: '2026-06-18' },
+    { seatNo: 'F01', name: '성춘향', gender: 'FEMALE', course: '재수', enrolledAt: '2026-03-16' },
     { seatNo: 'F02', name: '심청', gender: 'FEMALE', course: '고3', enrolledAt: '2026-07-02' },
   ] as const;
 
