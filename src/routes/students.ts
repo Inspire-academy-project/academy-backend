@@ -1,7 +1,6 @@
-import bcrypt from 'bcryptjs';
 import { Router } from 'express';
 import { z } from 'zod';
-import { HttpError } from '../lib/http-error.js';
+import { HttpError, parseDateOnly } from '../lib/http-error.js';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 
@@ -9,9 +8,25 @@ export const studentsRouter = Router();
 
 studentsRouter.use(requireAuth, requireRole('ADMIN', 'TEACHER'));
 
+const listSelect = {
+  id: true,
+  studentNo: true,
+  name: true,
+  gender: true,
+  course: true,
+  className: true,
+  phone: true,
+  parentPhone: true,
+  attendanceCode: true,
+  enrolledAt: true,
+  active: true,
+} as const;
+
 studentsRouter.get('/', async (req, res) => {
   const query = z
     .object({
+      gender: z.enum(['MALE', 'FEMALE']).optional(),
+      course: z.string().optional(),
       className: z.string().optional(),
       active: z.enum(['true', 'false']).optional(),
       q: z.string().optional(),
@@ -20,19 +35,19 @@ studentsRouter.get('/', async (req, res) => {
 
   const students = await prisma.student.findMany({
     where: {
+      gender: query.gender,
+      course: query.course,
       className: query.className,
       active: query.active ? query.active === 'true' : undefined,
-      user: query.q ? { name: { contains: query.q, mode: 'insensitive' } } : undefined,
+      OR: query.q
+        ? [
+            { name: { contains: query.q, mode: 'insensitive' } },
+            { studentNo: { contains: query.q, mode: 'insensitive' } },
+          ]
+        : undefined,
     },
-    select: {
-      id: true,
-      className: true,
-      parentPhone: true,
-      active: true,
-      enrolledAt: true,
-      user: { select: { id: true, name: true, email: true, phone: true } },
-    },
-    orderBy: [{ className: 'asc' }, { id: 'asc' }],
+    select: listSelect,
+    orderBy: [{ gender: 'asc' }, { studentNo: 'asc' }, { id: 'asc' }],
   });
 
   res.json(students);
@@ -44,13 +59,15 @@ studentsRouter.get('/:id', async (req, res) => {
   const student = await prisma.student.findUnique({
     where: { id },
     select: {
-      id: true,
-      className: true,
-      parentPhone: true,
-      active: true,
-      enrolledAt: true,
-      user: { select: { id: true, name: true, email: true, phone: true } },
-      payments: { orderBy: [{ year: 'desc' }, { month: 'desc' }], take: 12 },
+      ...listSelect,
+      memo: true,
+      leftAt: true,
+      user: { select: { id: true, email: true } },
+      payments: {
+        include: { period: true },
+        orderBy: { period: { startDate: 'desc' } },
+        take: 24,
+      },
       attendances: { orderBy: { date: 'desc' }, take: 30 },
     },
   });
@@ -61,61 +78,54 @@ studentsRouter.get('/:id', async (req, res) => {
   res.json(student);
 });
 
-const createSchema = z.object({
-  email: z.email(),
-  password: z.string().min(8),
+const upsertSchema = z.object({
+  studentNo: z.string().min(1).optional(),
   name: z.string().min(1),
-  phone: z.string().optional(),
+  gender: z.enum(['MALE', 'FEMALE']).optional(),
+  course: z.string().optional(),
   className: z.string().optional(),
+  phone: z.string().optional(),
   parentPhone: z.string().optional(),
+  attendanceCode: z.string().min(2).optional(),
+  enrolledAt: z.string(),
+  memo: z.string().optional(),
 });
 
 studentsRouter.post('/', async (req, res) => {
-  const body = createSchema.parse(req.body);
+  const body = upsertSchema.parse(req.body);
 
-  const exists = await prisma.user.findUnique({ where: { email: body.email } });
-  if (exists) {
-    throw new HttpError(409, '이미 가입된 이메일입니다.');
+  if (body.studentNo) {
+    const dup = await prisma.student.findUnique({ where: { studentNo: body.studentNo } });
+    if (dup) {
+      throw new HttpError(409, `이미 사용 중인 학생번호입니다: ${body.studentNo}`);
+    }
   }
 
   const student = await prisma.student.create({
-    data: {
-      className: body.className,
-      parentPhone: body.parentPhone,
-      user: {
-        create: {
-          email: body.email,
-          password: await bcrypt.hash(body.password, 10),
-          name: body.name,
-          phone: body.phone,
-          role: 'STUDENT',
-        },
-      },
-    },
-    select: {
-      id: true,
-      className: true,
-      user: { select: { id: true, name: true, email: true } },
-    },
+    data: { ...body, enrolledAt: parseDateOnly(body.enrolledAt, 'enrolledAt') },
+    select: listSelect,
   });
 
   res.status(201).json(student);
 });
 
-const updateSchema = z.object({
-  className: z.string().nullish(),
-  parentPhone: z.string().nullish(),
+const patchSchema = upsertSchema.partial().extend({
   active: z.boolean().optional(),
+  leftAt: z.string().nullish(),
 });
 
 studentsRouter.patch('/:id', async (req, res) => {
   const id = z.coerce.number().int().parse(req.params.id);
-  const body = updateSchema.parse(req.body);
+  const body = patchSchema.parse(req.body);
 
   const student = await prisma.student.update({
     where: { id },
-    data: body,
-    select: { id: true, className: true, parentPhone: true, active: true },
+    data: {
+      ...body,
+      enrolledAt: body.enrolledAt ? parseDateOnly(body.enrolledAt, 'enrolledAt') : undefined,
+      leftAt: body.leftAt ? parseDateOnly(body.leftAt, 'leftAt') : body.leftAt,
+    },
+    select: listSelect,
   });
 
   res.json(student);
