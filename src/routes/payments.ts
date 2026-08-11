@@ -10,7 +10,7 @@ paymentsRouter.use(requireAuth);
 
 const studentSelect = {
   id: true,
-  studentNo: true,
+  seatNo: true,
   name: true,
   gender: true,
   course: true,
@@ -156,7 +156,7 @@ paymentsRouter.get('/', requireRole('ADMIN'), async (req, res) => {
       student: query.gender ? { gender: query.gender } : undefined,
     },
     include: { student: { select: studentSelect }, period: true },
-    orderBy: [{ period: { startDate: 'desc' } }, { student: { studentNo: 'asc' } }],
+    orderBy: [{ period: { startDate: 'desc' } }, { student: { seatNo: 'asc' } }],
   });
 
   res.json(rows);
@@ -183,7 +183,7 @@ paymentsRouter.get('/unpaid', requireRole('ADMIN'), async (req, res) => {
       },
     },
     include: { student: { select: studentSelect }, period: true },
-    orderBy: [{ period: { dueDate: 'asc' } }, { student: { studentNo: 'asc' } }],
+    orderBy: [{ period: { dueDate: 'asc' } }, { student: { seatNo: 'asc' } }],
   });
 
   const outstandingTotal = rows.reduce((sum, row) => sum + (row.amount - row.paidAmount), 0);

@@ -19,18 +19,18 @@ async function main() {
   });
 
   const samples = [
-    { studentNo: 'M01', name: '이하늘', gender: 'MALE', course: '재수', enrolledAt: '2026-03-16' },
-    { studentNo: 'M02', name: '박서준', gender: 'MALE', course: '재수', enrolledAt: '2026-06-18' },
-    { studentNo: 'F01', name: '최민지', gender: 'FEMALE', course: '재수', enrolledAt: '2026-03-16' },
-    { studentNo: 'F02', name: '심청', gender: 'FEMALE', course: '고3', enrolledAt: '2026-07-02' },
+    { seatNo: 'M01', name: '이하늘', gender: 'MALE', course: '재수', enrolledAt: '2026-03-16' },
+    { seatNo: 'M02', name: '박서준', gender: 'MALE', course: '재수', enrolledAt: '2026-06-18' },
+    { seatNo: 'F01', name: '최민지', gender: 'FEMALE', course: '재수', enrolledAt: '2026-03-16' },
+    { seatNo: 'F02', name: '심청', gender: 'FEMALE', course: '고3', enrolledAt: '2026-07-02' },
   ] as const;
 
   for (const [index, sample] of samples.entries()) {
     await prisma.student.upsert({
-      where: { studentNo: sample.studentNo },
+      where: { seatNo: sample.seatNo },
       update: {},
       create: {
-        studentNo: sample.studentNo,
+        seatNo: sample.seatNo,
         name: sample.name,
         gender: sample.gender,
         course: sample.course,

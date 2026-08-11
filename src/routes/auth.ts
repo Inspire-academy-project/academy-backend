@@ -72,7 +72,7 @@ authRouter.get('/me', requireAuth, async (req, res) => {
       name: true,
       phone: true,
       role: true,
-      student: { select: { id: true, studentNo: true, className: true, active: true } },
+      student: { select: { id: true, seatNo: true, className: true, active: true } },
     },
   });
   if (!user) {
