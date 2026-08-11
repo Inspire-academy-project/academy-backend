@@ -33,8 +33,10 @@ authRouter.post('/register', async (req, res) => {
       role: 'STUDENT',
       student: {
         create: {
+          name: body.name,
           className: body.className,
           parentPhone: body.parentPhone,
+          enrolledAt: new Date(),
         },
       },
     },
@@ -70,7 +72,7 @@ authRouter.get('/me', requireAuth, async (req, res) => {
       name: true,
       phone: true,
       role: true,
-      student: { select: { id: true, className: true, active: true } },
+      student: { select: { id: true, studentNo: true, className: true, active: true } },
     },
   });
   if (!user) {

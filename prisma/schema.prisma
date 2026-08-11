@@ -23,22 +23,39 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  student        Student?
+  student        Student? @relation("StudentAccount")
   uploadedVideos Video[]  @relation("VideoUploader")
 }
 
+enum Gender {
+  MALE
+  FEMALE
+}
+
 model Student {
-  id          Int      @id @default(autoincrement())
-  userId      Int      @unique
-  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  className   String?
-  parentPhone String?
-  enrolledAt  DateTime @default(now())
-  active      Boolean  @default(true)
+  id             Int      @id @default(autoincrement())
+  studentNo      String?  @unique
+  name           String
+  gender         Gender?
+  course         String?
+  className      String?
+  phone          String?
+  parentPhone    String?
+  attendanceCode String?  @unique
+  enrolledAt     DateTime @db.Date
+  leftAt         DateTime? @db.Date
+  active         Boolean  @default(true)
+  memo           String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  userId Int?  @unique
+  user   User? @relation("StudentAccount", fields: [userId], references: [id], onDelete: SetNull)
 
   attendances Attendance[]
   payments    Payment[]
 
+  @@index([active, gender])
   @@index([className])
 }
 
@@ -64,28 +81,52 @@ model Attendance {
   @@index([date])
 }
 
+enum FeeType {
+  TUITION
+  MEAL
+  OTHER
+}
+
+model BillingPeriod {
+  id        Int      @id @default(autoincrement())
+  feeType   FeeType  @default(TUITION)
+  label     String
+  startDate DateTime @db.Date
+  endDate   DateTime @db.Date
+  dueDate   DateTime @db.Date
+  baseAmount Int?
+  closed    Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  payments Payment[]
+
+  @@unique([feeType, label])
+  @@index([startDate])
+}
+
 enum PaymentStatus {
   UNPAID
   PARTIAL
   PAID
+  EXEMPT
 }
 
 model Payment {
-  id         Int           @id @default(autoincrement())
-  studentId  Int
-  student    Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  year       Int
-  month      Int
-  amount     Int
-  paidAmount Int           @default(0)
-  status     PaymentStatus @default(UNPAID)
-  dueDate    DateTime      @db.Date
-  paidAt     DateTime?
-  memo       String?
-  createdAt  DateTime      @default(now())
-  updatedAt  DateTime      @updatedAt
+  id           Int           @id @default(autoincrement())
+  studentId    Int
+  student      Student       @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  periodId     Int
+  period       BillingPeriod @relation(fields: [periodId], references: [id], onDelete: Cascade)
+  amount       Int
+  paidAmount   Int           @default(0)
+  status       PaymentStatus @default(UNPAID)
+  proratedDays Int?
+  paidAt       DateTime?
+  memo         String?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
-  @@unique([studentId, year, month])
+  @@unique([studentId, periodId])
   @@index([status])
 }
 
