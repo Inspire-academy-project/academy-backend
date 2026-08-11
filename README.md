@@ -29,10 +29,10 @@ pnpm dev        # http://localhost:4000
 
 시드 계정 — 비밀번호는 모두 `academy1234`
 
-| 이메일 | 역할 |
-| --- | --- |
-| admin@academy.kr | 원장(ADMIN) |
-| teacher@academy.kr | 강사(TEACHER) |
+| 이메일                | 역할          |
+| --------------------- | ------------- |
+| admin@academy.kr      | 원장(ADMIN)   |
+| teacher@academy.kr    | 강사(TEACHER) |
 | student1~3@academy.kr | 학생(STUDENT) |
 
 ## 3. API 목록
@@ -41,53 +41,53 @@ pnpm dev        # http://localhost:4000
 
 ### 인증 `/api/auth`
 
-| 메서드 | 경로 | 권한 | 설명 |
-| --- | --- | --- | --- |
-| POST | `/register` | 공개 | 학생 회원가입 (User + Student 동시 생성) |
-| POST | `/login` | 공개 | 로그인, JWT 발급 (7일 유효) |
-| GET | `/me` | 로그인 | 내 정보 조회 |
+| 메서드 | 경로        | 권한   | 설명                                     |
+| ------ | ----------- | ------ | ---------------------------------------- |
+| POST   | `/register` | 공개   | 학생 회원가입 (User + Student 동시 생성) |
+| POST   | `/login`    | 공개   | 로그인, JWT 발급 (7일 유효)              |
+| GET    | `/me`       | 로그인 | 내 정보 조회                             |
 
 ### 학생 `/api/students`
 
-| 메서드 | 경로 | 권한 | 설명 |
-| --- | --- | --- | --- |
-| GET | `/` | ADMIN, TEACHER | 목록 (`?className=`, `?active=`, `?q=` 이름 검색) |
-| GET | `/:id` | ADMIN, TEACHER | 상세 + 최근 출결 30건/납부 12건 |
-| POST | `/` | ADMIN, TEACHER | 학생 등록 |
-| PATCH | `/:id` | ADMIN, TEACHER | 반·연락처·재원 여부 수정 |
+| 메서드 | 경로   | 권한           | 설명                                              |
+| ------ | ------ | -------------- | ------------------------------------------------- |
+| GET    | `/`    | ADMIN, TEACHER | 목록 (`?className=`, `?active=`, `?q=` 이름 검색) |
+| GET    | `/:id` | ADMIN, TEACHER | 상세 + 최근 출결 30건/납부 12건                   |
+| POST   | `/`    | ADMIN, TEACHER | 학생 등록                                         |
+| PATCH  | `/:id` | ADMIN, TEACHER | 반·연락처·재원 여부 수정                          |
 
 ### 출결 `/api/attendance`
 
-| 메서드 | 경로 | 권한 | 설명 |
-| --- | --- | --- | --- |
-| GET | `/me` | 학생 | 내 출결 (`?from=&to=`) |
-| GET | `/?date=YYYY-MM-DD` | ADMIN, TEACHER | 그날 전체 명단 + 출결 상태 |
-| GET | `/student/:studentId` | ADMIN, TEACHER | 특정 학생 출결 |
-| POST | `/` | ADMIN, TEACHER | 1명 출결 입력 (같은 날짜면 덮어씀) |
-| POST | `/bulk` | ADMIN, TEACHER | 여러 명 한 번에 입력 |
+| 메서드 | 경로                  | 권한           | 설명                               |
+| ------ | --------------------- | -------------- | ---------------------------------- |
+| GET    | `/me`                 | 학생           | 내 출결 (`?from=&to=`)             |
+| GET    | `/?date=YYYY-MM-DD`   | ADMIN, TEACHER | 그날 전체 명단 + 출결 상태         |
+| GET    | `/student/:studentId` | ADMIN, TEACHER | 특정 학생 출결                     |
+| POST   | `/`                   | ADMIN, TEACHER | 1명 출결 입력 (같은 날짜면 덮어씀) |
+| POST   | `/bulk`               | ADMIN, TEACHER | 여러 명 한 번에 입력               |
 
 상태값: `PRESENT`(출석) `LATE`(지각) `ABSENT`(결석) `EXCUSED`(인정결석)
 
 ### 납부 `/api/payments`
 
-| 메서드 | 경로 | 권한 | 설명 |
-| --- | --- | --- | --- |
-| GET | `/me` | 학생 | 내 납부 내역 |
-| GET | `/` | ADMIN | 전체 (`?status=&year=&month=&className=`) |
-| GET | `/unpaid` | ADMIN | **미납 목록 + 미납 총액** (엑셀 대체 핵심) |
-| POST | `/` | ADMIN | 청구 생성 (학생·연·월당 1건) |
-| PATCH | `/:id` | ADMIN | 입금액 기록 → 상태 자동 계산 |
+| 메서드 | 경로      | 권한  | 설명                                       |
+| ------ | --------- | ----- | ------------------------------------------ |
+| GET    | `/me`     | 학생  | 내 납부 내역                               |
+| GET    | `/`       | ADMIN | 전체 (`?status=&year=&month=&className=`)  |
+| GET    | `/unpaid` | ADMIN | **미납 목록 + 미납 총액** (엑셀 대체 핵심) |
+| POST   | `/`       | ADMIN | 청구 생성 (학생·연·월당 1건)               |
+| PATCH  | `/:id`    | ADMIN | 입금액 기록 → 상태 자동 계산               |
 
 상태값: `UNPAID`(미납) `PARTIAL`(부분납) `PAID`(완납) — `paidAmount`에 따라 서버가 자동 판정
 
 ### 영상 `/api/videos`
 
-| 메서드 | 경로 | 권한 | 설명 |
-| --- | --- | --- | --- |
-| GET | `/` | 로그인 | 목록 (`?date=&subject=`). 학생은 공개된 것만 |
-| POST | `/` | ADMIN, TEACHER | 업로드 (`multipart/form-data`, 파일 필드명 `video`, 최대 1GB) |
-| GET | `/:id/stream` | 로그인 | 스트리밍 (Range 지원 → 브라우저에서 구간 이동 가능) |
-| PATCH | `/:id` | ADMIN, TEACHER | 제목·공개 여부 수정 |
+| 메서드 | 경로          | 권한           | 설명                                                          |
+| ------ | ------------- | -------------- | ------------------------------------------------------------- |
+| GET    | `/`           | 로그인         | 목록 (`?date=&subject=`). 학생은 공개된 것만                  |
+| POST   | `/`           | ADMIN, TEACHER | 업로드 (`multipart/form-data`, 파일 필드명 `video`, 최대 1GB) |
+| GET    | `/:id/stream` | 로그인         | 스트리밍 (Range 지원 → 브라우저에서 구간 이동 가능)           |
+| PATCH  | `/:id`        | ADMIN, TEACHER | 제목·공개 여부 수정                                           |
 
 ## 4. 데이터 모델
 
@@ -118,13 +118,13 @@ src/
 
 ## 6. 자주 쓰는 명령어
 
-| 명령어 | 설명 |
-| --- | --- |
-| `pnpm dev` | 개발 서버 (파일 변경 시 자동 재시작) |
-| `pnpm db:push` | 스키마 변경을 DB에 즉시 반영 (개발 초기용) |
-| `pnpm db:migrate` | 마이그레이션 파일로 관리 (실제 운영용) |
-| `pnpm db:studio` | 브라우저에서 DB 데이터 확인/편집 |
-| `pnpm typecheck` | 타입 검사 |
+| 명령어            | 설명                                       |
+| ----------------- | ------------------------------------------ |
+| `pnpm dev`        | 개발 서버 (파일 변경 시 자동 재시작)       |
+| `pnpm db:push`    | 스키마 변경을 DB에 즉시 반영 (개발 초기용) |
+| `pnpm db:migrate` | 마이그레이션 파일로 관리 (실제 운영용)     |
+| `pnpm db:studio`  | 브라우저에서 DB 데이터 확인/편집           |
+| `pnpm typecheck`  | 타입 검사                                  |
 
 ## 7. 알아둘 점
 
