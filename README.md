@@ -22,10 +22,13 @@ cp .env.example .env
 `.env`에서 `DATABASE_URL`을 실제 DB 주소로, `JWT_SECRET`을 임의의 긴 문자열로 바꾼다.
 
 ```bash
-pnpm db:push    # 스키마를 DB에 반영 (첫 실행)
+pnpm db:migrate # 마이그레이션 적용 (첫 실행)
 pnpm db:seed    # 테스트 계정/데이터 생성
 pnpm dev        # http://localhost:4000
 ```
+
+Supabase를 쓴다면 **Session pooler** 주소(5432 포트)를 넣는다.
+Transaction pooler(6543)는 마이그레이션이 동작하지 않는다.
 
 시드 계정 — 비밀번호는 모두 `academy1234`
 
@@ -163,13 +166,16 @@ src/
 
 ## 6. 자주 쓰는 명령어
 
-| 명령어            | 설명                                       |
-| ----------------- | ------------------------------------------ |
-| `pnpm dev`        | 개발 서버 (파일 변경 시 자동 재시작)       |
-| `pnpm db:push`    | 스키마 변경을 DB에 즉시 반영 (개발 초기용) |
-| `pnpm db:migrate` | 마이그레이션 파일로 관리 (실제 운영용)     |
-| `pnpm db:studio`  | 브라우저에서 DB 데이터 확인/편집           |
-| `pnpm typecheck`  | 타입 검사                                  |
+| 명령어            | 설명                                            |
+| ----------------- | ----------------------------------------------- |
+| `pnpm dev`        | 개발 서버 (파일 변경 시 자동 재시작)            |
+| `pnpm db:migrate` | 스키마 변경을 마이그레이션으로 만들어 DB에 반영 |
+| `pnpm db:status`  | 적용 안 된 마이그레이션 확인                    |
+| `pnpm db:studio`  | 브라우저에서 DB 데이터 확인/편집                |
+| `pnpm typecheck`  | 타입 검사                                       |
+
+스키마를 고쳤으면 `pnpm db:migrate`를 쓴다. `db:push`는 마이그레이션 기록을 남기지
+않아 배포 환경과 어긋나므로 쓰지 않는다.
 
 ## 7. 알아둘 점
 
