@@ -43,7 +43,9 @@ enum TuitionTier {
 
 model Student {
   id             Int      @id @default(autoincrement())
-  seatNo         String?  @unique
+  /// 좌석번호는 퇴원하면 다른 학생이 넘겨받는다. 재원생 중에서만 유일하므로
+  /// DB 제약이 아니라 애플리케이션에서 검사한다. 학생 식별자는 id 를 쓴다.
+  seatNo         String?
   name           String
   gender         Gender?
   course         String?
@@ -71,6 +73,7 @@ model Student {
 
   @@index([active, gender])
   @@index([className])
+  @@index([seatNo])
 }
 
 enum AttendanceStatus {

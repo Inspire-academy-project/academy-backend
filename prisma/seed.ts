@@ -27,10 +27,12 @@ async function main() {
   ] as const;
 
   for (const [index, sample] of samples.entries()) {
-    await prisma.student.upsert({
-      where: { seatNo: sample.seatNo },
-      update: {},
-      create: {
+    // seatNo 는 더 이상 유니크가 아니므로 upsert 키로 쓸 수 없다.
+    const exists = await prisma.student.findFirst({ where: { seatNo: sample.seatNo } });
+    if (exists) continue;
+
+    await prisma.student.create({
+      data: {
         seatNo: sample.seatNo,
         name: sample.name,
         gender: sample.gender,
