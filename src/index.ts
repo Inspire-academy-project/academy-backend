@@ -11,7 +11,12 @@ import { videosRouter } from './routes/videos.js';
 
 const app = express();
 
-app.use(cors({ origin: env.CORS_ORIGIN }));
+// 로컬 개발 주소와 배포 주소를 함께 허용해야 하므로 쉼표로 여러 개를 받는다.
+const allowedOrigins = env.CORS_ORIGIN.split(',')
+  .map((origin) => origin.trim())
+  .filter(Boolean);
+
+app.use(cors({ origin: allowedOrigins }));
 app.use(express.json());
 
 app.get('/health', (_req, res) => {
