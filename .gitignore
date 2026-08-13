@@ -13,3 +13,4 @@ src/generated/
 *.hwp
 *.hwpx
 /data/
+/.idea
