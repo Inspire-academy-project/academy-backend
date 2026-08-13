@@ -14,3 +14,7 @@ src/generated/
 *.hwpx
 /data/
 /.idea
+
+# iCloud 동기화 충돌로 생기는 사본 (예: pnpm-lock 2.yaml)
+* 2.*
+* 2
