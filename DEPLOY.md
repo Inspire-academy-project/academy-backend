@@ -10,6 +10,19 @@ Railway에 올린다. 무료 주소가 나오므로 도메인은 없어도 된�
 
 `railway.json`이 저장소에 있어 빌드·실행 명령과 헬스체크는 자동으로 잡힌다.
 
+### 리전을 반드시 바꾼다
+
+**Settings → Region** 에서 **Southeast Asia (Singapore)** 를 고른다.
+
+기본값이 US 또는 EU West인데, 데이터베이스(Supabase)가 서울에 있어서 리전이 멀면
+**쿼리 한 번마다 대륙을 왕복**한다. 화면 하나에 쿼리가 여러 번 나가므로 체감 속도가 크게 떨어진다.
+싱가포르는 서울과 왕복 약 70ms, 유럽은 약 250ms다.
+
+### 주소 만들기
+
+배포된 직후에는 `Unexposed service` 상태라 외부에서 접속할 수 없다.
+**Settings → Networking → Generate Domain** 을 눌러야 `...up.railway.app` 주소가 생긴다.
+
 ## 2. 환경변수 넣기
 
 Railway 프로젝트 → **Variables** 에 아래를 넣는다.
@@ -48,6 +61,19 @@ curl https://<프로젝트>.up.railway.app/health
 2. Railway의 `CORS_ORIGIN`에 Cloudflare Pages 주소를 넣는다
 
 두 값이 서로를 가리켜야 한다. 한쪽만 설정하면 브라우저가 요청을 막는다.
+
+## 빌드가 실패할 때
+
+**`packages field missing or empty`**
+
+`pnpm-workspace.yaml`에 `packages` 항목이 없으면 pnpm이 설치 단계에서 멈춘다.
+이 저장소에는 이미 `packages: ['.']` 이 들어 있으니, 이 오류가 보인다면 배포되는 브랜치가
+옛 커밋일 가능성이 높다. Railway가 어떤 브랜치를 보고 있는지 확인한다.
+
+**빌드는 되는데 실행이 안 될 때**
+
+`start`가 `prisma migrate deploy`를 먼저 돌린다. `DATABASE_URL`이 없거나 틀리면 여기서 멈추므로
+Variables를 먼저 확인한다.
 
 ## 알아둘 점
 
