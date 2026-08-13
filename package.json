@@ -26,6 +26,7 @@
     }
   },
   "type": "module",
+  "packageManager": "pnpm@11.21.0",
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",
