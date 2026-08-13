@@ -24,6 +24,22 @@ const listSelect = {
   active: true,
 } as const;
 
+/**
+ * 좌석번호는 퇴원하면 다른 학생이 넘겨받으므로 DB 유니크로 막을 수 없다.
+ * 재원생끼리만 겹치지 않으면 되므로 여기서 검사한다.
+ */
+async function assertSeatAvailable(seatNo: string | null | undefined, excludeId?: number) {
+  if (!seatNo) return;
+
+  const taken = await prisma.student.findFirst({
+    where: { seatNo, active: true, id: excludeId ? { not: excludeId } : undefined },
+    select: { name: true },
+  });
+  if (taken) {
+    throw new HttpError(409, `${taken.name} 학생이 쓰고 있는 좌석번호입니다: ${seatNo}`);
+  }
+}
+
 studentsRouter.get('/', async (req, res) => {
   const query = z
     .object({
@@ -98,12 +114,7 @@ const upsertSchema = z.object({
 studentsRouter.post('/', async (req, res) => {
   const body = upsertSchema.parse(req.body);
 
-  if (body.seatNo) {
-    const dup = await prisma.student.findUnique({ where: { seatNo: body.seatNo } });
-    if (dup) {
-      throw new HttpError(409, `이미 사용 중인 좌석번호입니다: ${body.seatNo}`);
-    }
-  }
+  await assertSeatAvailable(body.seatNo);
 
   const student = await prisma.student.create({
     data: { ...body, enrolledAt: parseDateOnly(body.enrolledAt, 'enrolledAt') },
@@ -121,6 +132,18 @@ const patchSchema = upsertSchema.partial().extend({
 studentsRouter.patch('/:id', async (req, res) => {
   const id = z.coerce.number().int().parse(req.params.id);
   const body = patchSchema.parse(req.body);
+
+  // 좌석번호를 바꾸거나 퇴원생을 다시 재원 처리할 때 남의 자리와 겹칠 수 있다.
+  if (body.seatNo !== undefined || body.active === true) {
+    const current = await prisma.student.findUnique({
+      where: { id },
+      select: { seatNo: true },
+    });
+    if (!current) {
+      throw new HttpError(404, '학생을 찾을 수 없습니다.');
+    }
+    await assertSeatAvailable(body.seatNo ?? current.seatNo, id);
+  }
 
   const student = await prisma.student.update({
     where: { id },
