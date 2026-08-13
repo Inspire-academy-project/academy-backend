@@ -22,8 +22,8 @@ async function main() {
   const samples = [
     { seatNo: 'M01', name: '홍길동', gender: 'MALE', course: '재수', enrolledAt: '2026-03-16' },
     { seatNo: 'M02', name: '임꺽정', gender: 'MALE', course: '재수', enrolledAt: '2026-06-18' },
-    { seatNo: 'F01', name: '성춘향', gender: 'FEMALE', course: '재수', enrolledAt: '2026-03-16' },
-    { seatNo: 'F02', name: '심청', gender: 'FEMALE', course: '고3', enrolledAt: '2026-07-02' },
+    { seatNo: 'W01', name: '성춘향', gender: 'FEMALE', course: '재수', enrolledAt: '2026-03-16' },
+    { seatNo: 'W02', name: '심청', gender: 'FEMALE', course: '고3', enrolledAt: '2026-07-02' },
   ] as const;
 
   for (const [index, sample] of samples.entries()) {
