@@ -21,12 +21,12 @@
   "devEngines": {
     "packageManager": {
       "name": "pnpm",
-      "version": "^11.21.0",
+      "version": "^10.34.5",
       "onFail": "download"
     }
   },
   "type": "module",
-  "packageManager": "pnpm@11.21.0",
+  "packageManager": "pnpm@10.34.5",
   "dependencies": {
     "@prisma/adapter-pg": "^7.9.1",
     "@prisma/client": "^7.9.1",

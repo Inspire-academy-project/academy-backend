@@ -74,6 +74,21 @@ curl https://<프로젝트>.up.railway.app/health
 
 ## 빌드가 실패할 때
 
+**`ERR_PNPM_BROKEN_LOCKFILE: expected a single document in the stream, but found more`**
+
+pnpm 11은 락파일을 YAML 문서 두 개로 쓰는데(앞은 pnpm 자체 버전 관리용, 뒤가 실제 의존성),
+빌드 환경의 pnpm이 이 형식을 읽지 못해서 나는 오류다.
+
+그래서 이 저장소는 **pnpm 10으로 고정**한다. `package.json`의 두 곳이 같은 버전을 가리켜야 한다.
+
+```json
+"packageManager": "pnpm@10.34.5",
+"devEngines": { "packageManager": { "name": "pnpm", "version": "^10.34.5" } }
+```
+
+`devEngines` 쪽을 빠뜨리면 `packageManager`가 **무시된다.** 전역 pnpm이 11이어도 이 두 값이
+맞춰져 있으면 pnpm이 알아서 10을 내려받아 쓰므로, `pnpm install`을 해도 락파일이 깨지지 않는다.
+
 **`packages field missing or empty`**
 
 `pnpm-workspace.yaml`에 `packages` 항목이 없으면 pnpm이 설치 단계에서 멈춘다.
