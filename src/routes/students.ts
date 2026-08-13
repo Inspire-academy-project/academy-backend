@@ -133,6 +133,18 @@ studentsRouter.patch('/:id', async (req, res) => {
   const id = z.coerce.number().int().parse(req.params.id);
   const body = patchSchema.parse(req.body);
 
+  // 좌석번호를 바꾸거나 퇴원생을 다시 재원 처리할 때 남의 자리와 겹칠 수 있다.
+  if (body.seatNo !== undefined || body.active === true) {
+    const current = await prisma.student.findUnique({
+      where: { id },
+      select: { seatNo: true },
+    });
+    if (!current) {
+      throw new HttpError(404, '학생을 찾을 수 없습니다.');
+    }
+    await assertSeatAvailable(body.seatNo ?? current.seatNo, id);
+  }
+
   const student = await prisma.student.update({
     where: { id },
     data: {
