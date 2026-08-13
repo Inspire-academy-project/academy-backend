@@ -18,6 +18,8 @@ const listSelect = {
   phone: true,
   parentPhone: true,
   attendanceCode: true,
+  tuitionTier: true,
+  monthlyFee: true,
   enrolledAt: true,
   active: true,
 } as const;
@@ -87,6 +89,8 @@ const upsertSchema = z.object({
   phone: z.string().optional(),
   parentPhone: z.string().optional(),
   attendanceCode: z.string().min(2).optional(),
+  tuitionTier: z.enum(['STANDARD', 'EARLY', 'RETURNING', 'REENROLLED']).optional(),
+  monthlyFee: z.number().int().positive().optional(),
   enrolledAt: z.string(),
   memo: z.string().optional(),
 });

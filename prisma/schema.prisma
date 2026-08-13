@@ -32,6 +32,15 @@ enum Gender {
   FEMALE
 }
 
+/// 원비 할인 구분. 학생마다 월 원비가 달라지고, 일할 단가도 여기서 갈린다.
+/// 얼리는 설 전 첫 등원생에게 적용되며 퇴원할 때까지 유지된다.
+enum TuitionTier {
+  STANDARD
+  EARLY
+  RETURNING
+  REENROLLED
+}
+
 model Student {
   id             Int      @id @default(autoincrement())
   seatNo         String?  @unique
@@ -42,6 +51,8 @@ model Student {
   phone          String?
   parentPhone    String?
   attendanceCode String?  @unique
+  tuitionTier    TuitionTier @default(STANDARD)
+  monthlyFee     Int         @default(680000)
   enrolledAt     DateTime @db.Date
   leftAt         DateTime? @db.Date
   active         Boolean  @default(true)

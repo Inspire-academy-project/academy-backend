@@ -1,0 +1,6 @@
+-- CreateEnum
+CREATE TYPE "TuitionTier" AS ENUM ('STANDARD', 'EARLY', 'RETURNING', 'REENROLLED');
+
+-- AlterTable
+ALTER TABLE "Student" ADD COLUMN     "monthlyFee" INTEGER NOT NULL DEFAULT 680000,
+ADD COLUMN     "tuitionTier" "TuitionTier" NOT NULL DEFAULT 'STANDARD';

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { z } from 'zod';
 import { HttpError, parseDateOnly } from '../lib/http-error.js';
 import { prisma } from '../lib/prisma.js';
+import { chargeForPeriod, hasFixedDailyRate, refundStatus } from '../lib/tuition.js';
 import { requireAuth, requireOwnStudentId, requireRole } from '../middleware/auth.js';
 
 export const paymentsRouter = Router();
@@ -68,59 +69,117 @@ paymentsRouter.post('/periods', requireRole('ADMIN'), async (req, res) => {
   res.status(201).json(period);
 });
 
-/** 재원생 전체에게 이 주기의 청구서를 한 번에 생성. 등원일이 주기 중간이면 일할계산. */
+/**
+ * 재원생 전체에게 이 주기의 청구서를 한 번에 생성한다.
+ *
+ * 금액은 학생마다 다르다. 얼리·작년등록생은 65만원, 그 외는 68만원이고
+ * 일할 단가도 각각 22,000원·23,000원으로 매뉴얼에 고정돼 있다.
+ * 일할계산은 등원일이 이 주기 안에 있는 학생(=첫 달)에게만 적용된다.
+ */
 paymentsRouter.post('/periods/:id/generate', requireRole('ADMIN'), async (req, res) => {
   const periodId = z.coerce.number().int().parse(req.params.id);
-  const body = z
-    .object({
-      baseAmount: z.number().int().positive().optional(),
-      prorateByEnrollment: z.boolean().default(true),
-    })
-    .parse(req.body);
 
   const period = await prisma.billingPeriod.findUnique({ where: { id: periodId } });
   if (!period) {
     throw new HttpError(404, '청구 주기를 찾을 수 없습니다.');
   }
 
-  const baseAmount = body.baseAmount ?? period.baseAmount;
-  if (!baseAmount) {
-    throw new HttpError(400, '기준 금액이 없습니다. baseAmount를 지정하세요.');
-  }
-
   const students = await prisma.student.findMany({
     where: { active: true, enrolledAt: { lte: period.endDate } },
-    select: { id: true, enrolledAt: true },
+    select: { id: true, name: true, seatNo: true, enrolledAt: true, monthlyFee: true },
   });
 
-  const dayMs = 24 * 60 * 60 * 1000;
-  const totalDays = Math.round((+period.endDate - +period.startDate) / dayMs) + 1;
-  const dailyRate = Math.round(baseAmount / totalDays);
+  const rows = [];
+  const prorated = [];
+  const unknownRate = [];
 
-  const rows = students.map((student) => {
-    const startsLate = student.enrolledAt > period.startDate;
-    const days = startsLate
-      ? Math.round((+period.endDate - +student.enrolledAt) / dayMs) + 1
-      : totalDays;
+  for (const student of students) {
+    const charge = chargeForPeriod(
+      student.enrolledAt,
+      period.startDate,
+      period.endDate,
+      student.monthlyFee,
+    );
+    if (!charge) continue;
 
-    const prorated = body.prorateByEnrollment && startsLate;
-    return {
+    rows.push({
       studentId: student.id,
       periodId,
-      amount: prorated ? dailyRate * days : baseAmount,
-      proratedDays: prorated ? days : null,
-    };
-  });
+      amount: charge.amount,
+      proratedDays: charge.proratedDays,
+    });
+
+    if (charge.proratedDays !== null) {
+      prorated.push({
+        seatNo: student.seatNo,
+        name: student.name,
+        days: charge.proratedDays,
+        dailyRate: charge.dailyRate,
+        amount: charge.amount,
+      });
+    }
+    if (!hasFixedDailyRate(student.monthlyFee) && charge.proratedDays !== null) {
+      unknownRate.push({ seatNo: student.seatNo, monthlyFee: student.monthlyFee });
+    }
+  }
 
   const created = await prisma.payment.createMany({ data: rows, skipDuplicates: true });
 
   res.status(201).json({
     periodLabel: period.label,
-    totalDays,
-    dailyRate,
     targetStudents: rows.length,
     created: created.count,
     skipped: rows.length - created.count,
+    proratedStudents: prorated,
+    // 매뉴얼에 없는 월 원비라 일할 단가를 30일로 나눠 추정한 건들
+    unknownDailyRate: unknownRate,
+  });
+});
+
+/**
+ * 환불 가능 시점 조회. 금액은 계산하지 않는다 —
+ * 실제 환불 여부와 금액은 감염병 사유 등 사람의 판단이 들어가므로 원장이 정한다.
+ */
+paymentsRouter.get('/refund-status', requireRole('ADMIN', 'TEACHER'), async (req, res) => {
+  const query = z
+    .object({
+      studentId: z.coerce.number().int(),
+      periodId: z.coerce.number().int(),
+      noticeDate: z.string().optional(),
+    })
+    .parse(req.query);
+
+  const [student, period] = await Promise.all([
+    prisma.student.findUnique({
+      where: { id: query.studentId },
+      select: { id: true, seatNo: true, name: true, enrolledAt: true, monthlyFee: true },
+    }),
+    prisma.billingPeriod.findUnique({ where: { id: query.periodId } }),
+  ]);
+
+  if (!student) throw new HttpError(404, '학생을 찾을 수 없습니다.');
+  if (!period) throw new HttpError(404, '청구 주기를 찾을 수 없습니다.');
+
+  const status = refundStatus(
+    student.enrolledAt,
+    period.startDate,
+    period.endDate,
+    query.noticeDate ? parseDateOnly(query.noticeDate, 'noticeDate') : null,
+  );
+
+  const asDate = (d: Date) => d.toISOString().slice(0, 10);
+
+  res.json({
+    student: { id: student.id, seatNo: student.seatNo, name: student.name },
+    period: { id: period.id, label: period.label },
+    tier: status.tier,
+    label: status.label,
+    elapsedDays: status.elapsedDays,
+    totalDays: status.totalDays,
+    effectiveStart: asDate(status.effectiveStart),
+    twoThirdsUntil: asDate(status.twoThirdsUntil),
+    halfUntil: asDate(status.halfUntil),
+    note: '금액은 계산하지 않습니다. 환불 여부와 금액은 원장이 판단합니다.',
   });
 });
 
