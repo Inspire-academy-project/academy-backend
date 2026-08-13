@@ -23,6 +23,9 @@ Railway에 올린다. 무료 주소가 나오므로 도메인은 없어도 된�
 배포된 직후에는 `Unexposed service` 상태라 외부에서 접속할 수 없다.
 **Settings → Networking → Generate Domain** 을 눌러야 `...up.railway.app` 주소가 생긴다.
 
+이때 **"Enter the port your app is listening on"** 을 묻는다. 입력칸에 흐리게 보이는 `8080`은
+Railway의 예시일 뿐이니 **`4000`** 을 직접 입력한다. Variables의 `PORT`와 같은 값이어야 한다.
+
 ## 2. 환경변수 넣기
 
 Railway 프로젝트 → **Variables** 에 아래를 넣는다.
@@ -33,8 +36,11 @@ Railway 프로젝트 → **Variables** 에 아래를 넣는다.
 | `JWT_SECRET` | **새로 만든 긴 무작위 문자열** | 로컬 값을 그대로 쓰지 말 것 |
 | `CORS_ORIGIN` | 프론트 배포 주소 | 쉼표로 여러 개 가능 |
 | `UPLOAD_DIR` | `./uploads` | 기본값 그대로 |
+| `PORT` | `4000` | 아래 설명 참고 |
 
-`PORT`는 Railway가 자동으로 넣어주므로 직접 설정하지 않는다.
+서버는 `PORT` 환경변수를 읽고, 없으면 **4000**으로 뜬다 (`src/lib/env.ts`).
+Railway가 주소를 만들 때 **어느 포트로 트래픽을 보낼지** 물어보므로, 양쪽을 4000으로 맞춰
+어긋나지 않게 한다.
 
 `JWT_SECRET` 만들기 — 이 값을 아는 사람은 관리자 토큰을 위조할 수 있다.
 
