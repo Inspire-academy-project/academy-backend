@@ -1,0 +1,58 @@
+# 배포 (API 서버)
+
+Railway에 올린다. 무료 주소가 나오므로 도메인은 없어도 된다.
+
+## 1. Railway 프로젝트 만들기
+
+1. [railway.app](https://railway.app) 가입 (GitHub 계정으로)
+2. **New Project → Deploy from GitHub repo → academy-backend** 선택
+3. Root directory는 비워둔다 (저장소 루트가 곧 서버 폴더)
+
+`railway.json`이 저장소에 있어 빌드·실행 명령과 헬스체크는 자동으로 잡힌다.
+
+## 2. 환경변수 넣기
+
+Railway 프로젝트 → **Variables** 에 아래를 넣는다.
+
+| 변수 | 값 | 설명 |
+| --- | --- | --- |
+| `DATABASE_URL` | Supabase Session pooler URI | 로컬 `.env`와 같은 값 |
+| `JWT_SECRET` | **새로 만든 긴 무작위 문자열** | 로컬 값을 그대로 쓰지 말 것 |
+| `CORS_ORIGIN` | 프론트 배포 주소 | 쉼표로 여러 개 가능 |
+| `UPLOAD_DIR` | `./uploads` | 기본값 그대로 |
+
+`PORT`는 Railway가 자동으로 넣어주므로 직접 설정하지 않는다.
+
+`JWT_SECRET` 만들기 — 이 값을 아는 사람은 관리자 토큰을 위조할 수 있다.
+
+```bash
+node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+```
+
+## 3. 배포 확인
+
+Railway가 준 주소로 확인한다.
+
+```bash
+curl https://<프로젝트>.up.railway.app/health
+```
+
+`{"ok":true}` 가 나오면 성공이다.
+
+`pnpm start`가 `prisma migrate deploy`를 먼저 실행하므로, 스키마는 배포할 때마다 자동으로
+최신 상태가 된다.
+
+## 4. 프론트와 연결
+
+1. 프론트(Cloudflare Pages)의 `NEXT_PUBLIC_API_URL`에 Railway 주소를 넣는다
+2. Railway의 `CORS_ORIGIN`에 Cloudflare Pages 주소를 넣는다
+
+두 값이 서로를 가리켜야 한다. 한쪽만 설정하면 브라우저가 요청을 막는다.
+
+## 알아둘 점
+
+- **파일이 재배포 때 사라진다.** Railway 디스크는 임시라 `uploads/`에 올린 영상은 다시 배포하면
+  없어진다. 영상 기능(P2)을 붙일 때는 Bunny Stream 같은 외부 저장소를 써야 한다.
+- **`JWT_SECRET`을 바꾸면 모두 로그아웃된다.** 발급된 토큰이 전부 무효가 되므로 운영 중에는 바꾸지
+  않는다.
+- **로그**는 Railway 프로젝트의 Deployments 탭에서 볼 수 있다. 500 오류가 나면 여기부터 본다.
