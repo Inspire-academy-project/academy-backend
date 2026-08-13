@@ -22,7 +22,7 @@ async function main() {
     { seatNo: 'M01', name: '이하늘', gender: 'MALE', course: '재수', enrolledAt: '2026-03-16' },
     { seatNo: 'M02', name: '박서준', gender: 'MALE', course: '재수', enrolledAt: '2026-06-18' },
     { seatNo: 'F01', name: '최민지', gender: 'FEMALE', course: '재수', enrolledAt: '2026-03-16' },
-    { seatNo: 'F02', name: '권윤지', gender: 'FEMALE', course: '고3', enrolledAt: '2026-07-02' },
+    { seatNo: 'F02', name: '심청', gender: 'FEMALE', course: '고3', enrolledAt: '2026-07-02' },
   ] as const;
 
   for (const [index, sample] of samples.entries()) {
@@ -55,22 +55,9 @@ async function main() {
     },
   });
 
-  const meal = await prisma.billingPeriod.upsert({
-    where: { feeType_label: { feeType: 'MEAL', label: '2026년 10월' } },
-    update: {},
-    create: {
-      feeType: 'MEAL',
-      label: '2026년 10월',
-      startDate: d('2026-10-01'),
-      endDate: d('2026-10-31'),
-      dueDate: d('2026-10-05'),
-      baseAmount: 180_000,
-    },
-  });
-
   const students = await prisma.student.findMany({ select: { id: true } });
 
-  for (const period of [tuition, meal]) {
+  for (const period of [tuition]) {
     await prisma.payment.createMany({
       data: students.map((student) => ({
         studentId: student.id,
@@ -101,7 +88,7 @@ async function main() {
   });
 
   console.log(`시드 완료 (관리자: ${admin.email} / 비밀번호: academy1234)`);
-  console.log(`학생 ${students.length}명, 청구 주기 2개(학원비·급식비) 생성`);
+  console.log(`학생 ${students.length}명, 학원비 청구 주기 1개 생성`);
 }
 
 main()

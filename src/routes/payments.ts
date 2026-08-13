@@ -25,7 +25,7 @@ function resolveStatus(amount: number, paidAmount: number) {
 /* ---------- 청구 주기 (학원비 3월=3/16~4/15, 급식비 등) ---------- */
 
 paymentsRouter.get('/periods', requireRole('ADMIN', 'TEACHER'), async (req, res) => {
-  const query = z.object({ feeType: z.enum(['TUITION', 'MEAL', 'OTHER']).optional() }).parse(req.query);
+  const query = z.object({ feeType: z.enum(['TUITION', 'OTHER']).optional() }).parse(req.query);
 
   const periods = await prisma.billingPeriod.findMany({
     where: { feeType: query.feeType },
@@ -37,7 +37,7 @@ paymentsRouter.get('/periods', requireRole('ADMIN', 'TEACHER'), async (req, res)
 });
 
 const periodSchema = z.object({
-  feeType: z.enum(['TUITION', 'MEAL', 'OTHER']).default('TUITION'),
+  feeType: z.enum(['TUITION', 'OTHER']).default('TUITION'),
   label: z.string().min(1),
   startDate: z.string(),
   endDate: z.string(),
@@ -142,7 +142,7 @@ paymentsRouter.get('/', requireRole('ADMIN'), async (req, res) => {
   const query = z
     .object({
       periodId: z.coerce.number().int().optional(),
-      feeType: z.enum(['TUITION', 'MEAL', 'OTHER']).optional(),
+      feeType: z.enum(['TUITION', 'OTHER']).optional(),
       status: z.enum(['UNPAID', 'PARTIAL', 'PAID', 'EXEMPT']).optional(),
       gender: z.enum(['MALE', 'FEMALE']).optional(),
     })
@@ -166,7 +166,7 @@ paymentsRouter.get('/', requireRole('ADMIN'), async (req, res) => {
 paymentsRouter.get('/unpaid', requireRole('ADMIN'), async (req, res) => {
   const query = z
     .object({
-      feeType: z.enum(['TUITION', 'MEAL', 'OTHER']).optional(),
+      feeType: z.enum(['TUITION', 'OTHER']).optional(),
       includeUpcoming: z.enum(['true', 'false']).default('false'),
     })
     .parse(req.query);
