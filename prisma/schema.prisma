@@ -70,10 +70,28 @@ model Student {
   mealReservations MealReservation[]
   mealRecords      MealRecord[]
   mealSettlements  MealSettlement[]
+  invites          StudentInvite[]
 
   @@index([active, gender])
   @@index([className])
   @@index([seatNo])
+}
+
+/// 원생을 로그인 계정과 잇는 1회용 가입 코드.
+/// 원장이 만들어 학생에게 전달하고, 학생은 이 코드로 가입한다.
+/// 코드가 없으면 가입 자체가 안 되므로 명부에 없는 사람이 계정을 만들 수 없다.
+model StudentInvite {
+  id        Int      @id @default(autoincrement())
+  studentId Int
+  student   Student  @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  /// 코드는 원문이 아니라 해시로 둔다. DB를 들여다봐도 남의 계정을 만들 수 없다.
+  /// 대신 발급한 그 순간에만 원문을 볼 수 있고, 잃어버리면 다시 발급한다.
+  codeHash  String   @unique
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime @default(now())
+
+  @@index([studentId])
 }
 
 enum AttendanceStatus {
