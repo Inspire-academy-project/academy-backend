@@ -83,16 +83,21 @@ enum AttendanceStatus {
   EXCUSED
 }
 
+/// 등원·하원 시각은 키오스크가 찍고, 지각·결석 판정은 사람이 status 로 남긴다.
+/// 그래서 시각과 status 는 서로를 건드리지 않는다.
 model Attendance {
-  id        Int              @id @default(autoincrement())
-  studentId Int
-  student   Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
-  date      DateTime         @db.Date
-  status    AttendanceStatus @default(PRESENT)
-  checkInAt DateTime?
-  note      String?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  id         Int              @id @default(autoincrement())
+  studentId  Int
+  student    Student          @relation(fields: [studentId], references: [id], onDelete: Cascade)
+  date       DateTime         @db.Date
+  status     AttendanceStatus @default(PRESENT)
+  /// 그날 첫 입력. 한 번 찍히면 키오스크가 덮어쓰지 않는다.
+  checkInAt  DateTime?
+  /// 그 뒤의 입력. 여러 번 찍으면 마지막 시각으로 갱신된다.
+  checkOutAt DateTime?
+  note       String?
+  createdAt  DateTime         @default(now())
+  updatedAt  DateTime         @updatedAt
 
   @@unique([studentId, date])
   @@index([date])
