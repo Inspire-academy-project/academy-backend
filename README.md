@@ -70,6 +70,7 @@ Transaction pooler(6543)는 마이그레이션이 동작하지 않는다.
 | GET    | `/student/:studentId` | ADMIN, TEACHER | 특정 학생 출결                     |
 | POST   | `/`                   | ADMIN, TEACHER | 1명 출결 입력 (같은 날짜면 덮어씀) |
 | POST   | `/bulk`               | ADMIN, TEACHER | 여러 명 한 번에 입력               |
+| GET    | `/kiosk`              | 출결 패드      | 기기 토큰이 맞는지 확인            |
 | POST   | `/kiosk`              | 출결 패드      | 번호를 받아 등원·하원 시각 기록    |
 
 상태값: `PRESENT`(출석) `LATE`(지각) `ABSENT`(결석) `EXCUSED`(인정결석)
@@ -95,6 +96,9 @@ X-Kiosk-Token: <KIOSK_TOKEN>
 
 → { "name": "홍길동", "action": "IN", "at": "08:52" }
 ```
+
+패드에 토큰을 등록할 때는 `GET /api/attendance/kiosk`로 값이 맞는지 먼저 확인한다.
+학생이 번호를 누르고 나서야 기기 등록이 잘못된 걸 알게 되면 곤란하다.
 
 그날 첫 입력이면 `IN`, 그 뒤로는 `OUT`으로 하원 시각만 갱신한다.
 실수로 여러 번 눌러도 등원 시각은 덮이지 않는다.

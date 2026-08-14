@@ -15,6 +15,14 @@ export const attendanceRouter = Router();
 const kioskSchema = z.object({ code: z.string().trim().min(2).max(20) });
 
 /**
+ * 패드에 토큰을 등록할 때 값이 맞는지 확인하는 용도.
+ * 학생이 번호를 누르고 나서야 틀린 걸 알게 되면 곤란하다.
+ */
+attendanceRouter.get('/kiosk', requireKioskDevice, (_req, res) => {
+  res.json({ ok: true });
+});
+
+/**
  * 출결 패드 전용. 학생이 번호를 누르면 시각만 남기고 지각·결석 판정은 하지 않는다.
  * 로그인이 아니라 기기 토큰으로 확인하므로 requireAuth 앞에 둔다.
  */
