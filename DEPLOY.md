@@ -61,6 +61,7 @@ Railway 프로젝트 → **Variables** 에 아래를 넣는다.
 | `CORS_ORIGIN`  | 프론트 배포 주소               | 쉼표로 여러 개 가능                    |
 | `PORT`         | `4000`                         | 도메인 생성 시 입력한 포트와 같아야 함 |
 | `UPLOAD_DIR`   | `./uploads`                    | 기본값 그대로                          |
+| `KIOSK_TOKEN`  | **새로 만든 긴 무작위 문자열** | 출결 패드용. 비워 두면 키오스크가 닫힘 |
 
 ### 따옴표를 넣지 않는다
 
@@ -88,6 +89,16 @@ P1013: The provided database string is invalid. The scheme is not recognized
 
 ```bash
 node -e "console.log(require('crypto').randomBytes(48).toString('base64url'))"
+```
+
+### KIOSK_TOKEN 만들기
+
+같은 방식으로 만들되 **JWT_SECRET과 다른 값**을 쓴다.
+이 값은 출결 패드에 저장되므로, 패드를 잃어버리면 이 변수만 새로 만들어
+다시 넣으면 된다. 그 순간 예전 패드는 출결을 찍지 못한다.
+
+```bash
+node -e "console.log(require('crypto').randomBytes(24).toString('hex'))"
 ```
 
 ## 3. 배포 확인
