@@ -128,15 +128,18 @@ const markSchema = z.object({
   note: z.string().optional(),
 });
 
+/**
+ * 시각은 키오스크가 남기고 여기서는 판정만 바꾼다.
+ * 버튼을 누른 시각을 등원 시각으로 적으면 학생이 실제로 찍은 기록이 지워진다.
+ */
 attendanceRouter.post('/', requireRole('ADMIN', 'TEACHER'), async (req, res) => {
   const body = markSchema.parse(req.body);
   const date = parseDateOnly(body.date, 'date');
-  const checkInAt = body.status === 'PRESENT' || body.status === 'LATE' ? new Date() : null;
 
   const row = await prisma.attendance.upsert({
     where: { studentId_date: { studentId: body.studentId, date } },
-    create: { studentId: body.studentId, date, status: body.status, note: body.note, checkInAt },
-    update: { status: body.status, note: body.note, checkInAt },
+    create: { studentId: body.studentId, date, status: body.status, note: body.note },
+    update: { status: body.status, note: body.note },
   });
 
   res.status(201).json(row);
@@ -150,22 +153,13 @@ const bulkSchema = z.object({
 attendanceRouter.post('/bulk', requireRole('ADMIN', 'TEACHER'), async (req, res) => {
   const body = bulkSchema.parse(req.body);
   const date = parseDateOnly(body.date, 'date');
-  const checkInAt = new Date();
 
   const rows = await prisma.$transaction(
     body.records.map((record) =>
       prisma.attendance.upsert({
         where: { studentId_date: { studentId: record.studentId, date } },
-        create: {
-          studentId: record.studentId,
-          date,
-          status: record.status,
-          checkInAt: record.status === 'ABSENT' || record.status === 'EXCUSED' ? null : checkInAt,
-        },
-        update: {
-          status: record.status,
-          checkInAt: record.status === 'ABSENT' || record.status === 'EXCUSED' ? null : checkInAt,
-        },
+        create: { studentId: record.studentId, date, status: record.status },
+        update: { status: record.status },
       }),
     ),
   );
