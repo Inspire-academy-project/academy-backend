@@ -1,6 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import { HttpError, parseDateOnly } from '../lib/http-error.js';
+import { generateInviteCode, hashInviteCode, inviteExpiry } from '../lib/invite-code.js';
 import { prisma } from '../lib/prisma.js';
 import { requireAuth, requireRole } from '../middleware/auth.js';
 
@@ -81,6 +82,12 @@ studentsRouter.get('/:id', async (req, res) => {
       memo: true,
       leftAt: true,
       user: { select: { id: true, email: true } },
+      invites: {
+        where: { usedAt: null },
+        orderBy: { createdAt: 'desc' },
+        take: 1,
+        select: { expiresAt: true, createdAt: true },
+      },
       payments: {
         include: { period: true },
         orderBy: { period: { startDate: 'desc' } },
@@ -93,7 +100,57 @@ studentsRouter.get('/:id', async (req, res) => {
     throw new HttpError(404, '학생을 찾을 수 없습니다.');
   }
 
-  res.json(student);
+  const pending = student.invites[0];
+  const { invites: _invites, ...rest } = student;
+
+  res.json({
+    ...rest,
+    // 아직 안 쓴 코드가 있는지만 알려준다. 코드 자체는 발급할 때 한 번만 보인다.
+    pendingInvite:
+      pending && pending.expiresAt > new Date()
+        ? { expiresAt: pending.expiresAt, createdAt: pending.createdAt }
+        : null,
+  });
+});
+
+/**
+ * 원생을 로그인 계정과 잇기 위한 1회용 가입 코드를 만든다.
+ * 원장이 학생에게 전달하면 학생이 그 코드로 가입한다.
+ *
+ * 출결번호로 잇지 않는 이유: 출결번호는 패드에서 공개적으로 눌리는 값이라
+ * 학생끼리 서로 안다. 그걸로 가입시키면 남의 계정을 만들 수 있다.
+ */
+studentsRouter.post('/:id/invite', async (req, res) => {
+  const id = z.coerce.number().int().parse(req.params.id);
+
+  const student = await prisma.student.findUnique({
+    where: { id },
+    select: { id: true, name: true, active: true, userId: true },
+  });
+  if (!student) {
+    throw new HttpError(404, '학생을 찾을 수 없습니다.');
+  }
+  if (student.userId) {
+    throw new HttpError(409, `${student.name} 학생은 이미 계정이 연결되어 있습니다.`);
+  }
+  if (!student.active) {
+    throw new HttpError(409, '퇴원 처리된 원생에게는 가입 코드를 발급할 수 없습니다.');
+  }
+
+  const code = generateInviteCode();
+  const expiresAt = inviteExpiry();
+
+  // 다시 발급하면 이전 코드는 무효가 된다. 코드가 여러 개 살아 있으면
+  // 어느 것을 전달했는지 알 수 없어 회수할 방법이 없어진다.
+  await prisma.$transaction([
+    prisma.studentInvite.deleteMany({ where: { studentId: id, usedAt: null } }),
+    prisma.studentInvite.create({
+      data: { studentId: id, codeHash: hashInviteCode(code), expiresAt },
+    }),
+  ]);
+
+  // 원문은 이 응답에만 실린다. 저장은 해시로 하므로 다시 꺼내볼 수 없다.
+  res.status(201).json({ studentId: id, name: student.name, code, expiresAt });
 });
 
 const upsertSchema = z.object({
