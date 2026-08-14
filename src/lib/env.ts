@@ -17,6 +17,13 @@ const schema = z.object({
   PORT: blankAsUndefined(z.coerce.number().int().positive().default(4000)),
   CORS_ORIGIN: blankAsUndefined(z.string().min(1).default('http://localhost:3000')),
   UPLOAD_DIR: blankAsUndefined(z.string().min(1).default('./uploads')),
+  /**
+   * 출결 패드에 심어 두는 값. 이 값을 가진 기기에서만 출결이 찍힌다.
+   * 비워 두면 키오스크 API 자체가 닫히므로, 쓰지 않을 때는 설정하지 않으면 된다.
+   */
+  KIOSK_TOKEN: blankAsUndefined(
+    z.string().min(16, 'KIOSK_TOKEN은 16자 이상이어야 합니다.').optional(),
+  ),
 });
 
 const parsed = schema.safeParse(process.env);
