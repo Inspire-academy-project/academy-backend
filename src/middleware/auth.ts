@@ -1,3 +1,4 @@
+import { createHash, timingSafeEqual } from 'node:crypto';
 import type { NextFunction, Request, Response } from 'express';
 import jwt from 'jsonwebtoken';
 import { env } from '../lib/env.js';
@@ -50,6 +51,35 @@ export function requireRole(...roles: Role[]) {
     }
     next();
   };
+}
+
+/**
+ * 길이가 달라도 비교 시간이 같도록 해시로 맞춰 놓고 비교한다.
+ * 값을 한 글자씩 바꿔 가며 응답 시간을 재는 방식으로 알아내지 못하게 하기 위함이다.
+ */
+function matchesSecret(provided: string, expected: string): boolean {
+  const a = createHash('sha256').update(provided).digest();
+  const b = createHash('sha256').update(expected).digest();
+  return timingSafeEqual(a, b);
+}
+
+/**
+ * 출결 패드는 로그인을 할 수 없으므로 기기에 심어 둔 토큰으로 확인한다.
+ * 주소를 알아내도 토큰이 없으면 출결을 찍을 수 없다.
+ */
+export function requireKioskDevice(req: Request, _res: Response, next: NextFunction): void {
+  if (!env.KIOSK_TOKEN) {
+    next(new HttpError(503, '키오스크가 설정되지 않았습니다. 관리자에게 문의하세요.'));
+    return;
+  }
+
+  const provided = req.header('X-Kiosk-Token');
+  if (!provided || !matchesSecret(provided, env.KIOSK_TOKEN)) {
+    next(new HttpError(401, '등록되지 않은 기기입니다.'));
+    return;
+  }
+
+  next();
 }
 
 export async function requireOwnStudentId(req: Request): Promise<number> {
