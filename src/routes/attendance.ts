@@ -31,13 +31,21 @@ attendanceRouter.post('/kiosk', requireKioskDevice, async (req, res) => {
 
   const student = await prisma.student.findFirst({
     where: { attendanceCode: code, active: true },
-    select: { id: true, name: true },
+    select: { id: true, name: true, enrolledAt: true },
   });
   if (!student) {
     throw new HttpError(404, '등록되지 않은 번호입니다. 다시 확인해 주세요.');
   }
 
   const date = kstToday();
+
+  // 원생은 미리 등록해 둘 수 있다. 등원 시작일 전에는 찍히지 않는다.
+  // 번호를 잘못 눌렀을 때와 구분되는 문구를 준다. 뭉뚱그리면 학생이
+  // 자기 번호가 틀렸다고 오해하고 계속 다시 누른다.
+  if (student.enrolledAt > date) {
+    throw new HttpError(403, '아직 등원 시작일이 아닙니다. 학원에 문의해 주세요.');
+  }
+
   const now = new Date();
   const key = { studentId_date: { studentId: student.id, date } };
 
@@ -76,6 +84,24 @@ function rangeFilter(from?: string, to?: string) {
   };
 }
 
+/**
+ * 그 날짜에 학원을 다니고 있던 학생을 고른다.
+ *
+ * 원생은 미리 등록해 둘 수 있다. 등록일이 아직 안 온 학생이 오늘 명단에 뜨면
+ * 등원할 때까지 매일 미입력으로 남는다. 학원비는 이미 등록일을 보고 있어
+ * (tuition.ts) 출결만 규칙이 달랐다.
+ *
+ * 퇴원생도 마찬가지다. 지금 안 다닌다고 지난 8월 명단에서 빼면 그때 출결을
+ * 볼 수 없다. 재원 중이면 등록일만 보고, 퇴원했으면 퇴원일까지만 넣는다.
+ * 퇴원 처리만 하고 날짜를 안 넣은 경우 명단에 영원히 남지 않도록 leftAt 을 요구한다.
+ */
+function enrolledOn(date: Date) {
+  return {
+    enrolledAt: { lte: date },
+    OR: [{ active: true }, { leftAt: { gte: date } }],
+  };
+}
+
 attendanceRouter.get('/me', async (req, res) => {
   const studentId = await requireOwnStudentId(req);
   const { from, to } = rangeSchema.parse(req.query);
@@ -93,7 +119,7 @@ attendanceRouter.get('/', requireRole('ADMIN', 'TEACHER'), async (req, res) => {
   const date = parseDateOnly(query.date, 'date');
 
   const students = await prisma.student.findMany({
-    where: { active: true, className: query.className },
+    where: { ...enrolledOn(date), className: query.className },
     select: {
       id: true,
       seatNo: true,
